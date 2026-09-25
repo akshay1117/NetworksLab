@@ -70,13 +70,13 @@ class ServerThread extends Thread {
         }
 
         if (isDiagonal) {
-            return "Diagonal";
+            return "Diagonal Matrix";
         } else if (isUpper) {
-            return "Upper Triangular";
+            return "Upper Triangular Matrix";
         } else if (isLower) {
-            return "Lower Triangular";
+            return "Lower Triangular Matrix";
         } else {
-            return "None of the above (Ordinary Matrix)";
+            return "Not a special matrix";
         }
     }
 }

@@ -22,7 +22,7 @@ public class TCPClient {
             System.out.println("Generated Matrix:");
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
-                    matrix[i][j] = random.nextInt(50) + 1; // [1, 50]
+                    matrix[i][j] = random.nextInt(51); // filling with 0 to 50
                     System.out.print(matrix[i][j] + "\t");
                 }
                 System.out.println();
@@ -35,7 +35,7 @@ public class TCPClient {
 
             // Receive the result
             String type = (String) in.readObject();
-            System.out.println("Server says the matrix is: " + type);
+            System.out.println("Matrix Type: " + type);
 
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
