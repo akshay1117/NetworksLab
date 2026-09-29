@@ -1,66 +1,32 @@
-import java.io.*;
 import java.net.*;
-import java.util.HashMap;
-import java.util.Map;
 
 public class UDPServer {
-    private static final Map<String, String> dictionary = new HashMap<>();
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ss = new DatagramSocket(5000);
+        System.out.println("Server Started...");
+        byte[] receivedata = new byte[1024];
+        byte[] sendData;
 
-    // Populate the dictionary with the requested abbreviations
-    static {
-        dictionary.put("tbh", "to be honest");
-        dictionary.put("ig", "I guess");
-        dictionary.put("tbf", "to be fair");
-        dictionary.put("atm", "at the moment");
-        dictionary.put("irl", "in real life");
-        dictionary.put("lol", "laughing out loud");
-        dictionary.put("asap", "as soon as possible");
-        dictionary.put("omg", "oh my god");
-        dictionary.put("ttyl", "talk to you later");
-        dictionary.put("idk", "I don't know");
-        dictionary.put("idc", "I don't care");
-        dictionary.put("nvm", "never mind");
-    }
+        DatagramPacket receivepacket = new DatagramPacket(receivedata, receivedata.length);
+        ss.receive(receivepacket);
+        String sentence = new String(receivepacket.getData(), 0, receivepacket.getLength());
 
-    public static void main(String[] args) {
-        int port = 9876;
+        sentence = sentence.replaceAll("\\btbh\\b", "to be honest");
+        sentence = sentence.replaceAll("\\big\\b", "i guess");
+        sentence = sentence.replaceAll("\\btbf\\b", "to be frank");
+        sentence = sentence.replaceAll("\\batm\\b", "at the most");
+        sentence = sentence.replaceAll("\\birl\\b", "in real life");
+        sentence = sentence.replaceAll("\\blol\\b", "laughing out loud");
+        sentence = sentence.replaceAll("\\basap\\b", "as soon as possible");
+        sentence = sentence.replaceAll("\\bomg\\b", "oh my god");
+        sentence = sentence.replaceAll("\\bidk\\b", "i don't know");
+        sentence = sentence.replaceAll("\\bnvm\\b", "never mind");
 
-        try (DatagramSocket socket = new DatagramSocket(port)) {
-            System.out.println("UDP Server is listening on port " + port);
-            byte[] receiveData = new byte[1024];
-
-            while (true) {
-                // Receive packet from client
-                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                socket.receive(receivePacket);
-
-                String sentence = new String(receivePacket.getData(), 0, receivePacket.getLength());
-                System.out.println("Received from client: " + sentence);
-
-                // Translate sentence
-                String translatedSentence = translate(sentence);
-
-                // Send translated packet back to client
-                byte[] sendData = translatedSentence.getBytes();
-                InetAddress clientAddress = receivePacket.getAddress();
-                int clientPort = receivePacket.getPort();
-
-                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
-                socket.send(sendPacket);
-            }
-        } catch (IOException ex) {
-            System.out.println("Server error: " + ex.getMessage());
-            ex.printStackTrace();
-        }
-    }
-
-    private static String translate(String sentence) {
-        String result = sentence;
-        for (Map.Entry<String, String> entry : dictionary.entrySet()) {
-            // Use regex \b to match exact word boundaries, (?i) for case-insensitivity
-            String regex = "(?i)\\b" + entry.getKey() + "\\b";
-            result = result.replaceAll(regex, entry.getValue());
-        }
-        return result;
+        sendData = sentence.getBytes();
+        InetAddress address = receivepacket.getAddress();
+        int port = receivepacket.getPort();
+        DatagramPacket sendpacket = new DatagramPacket(sendData, sendData.length, address, port);
+        ss.send(sendpacket);
+        ss.close();
     }
 }

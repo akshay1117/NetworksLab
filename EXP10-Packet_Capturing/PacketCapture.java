@@ -1,34 +1,60 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+/*Maven Commands
+sudo apt update
+sudo apt install maven -y
+sudo apt install libpcap-dev -y
+Go to Maven project folder
+mvn clean compile
+sudo mvn exec:java -Dexec.mainClass="PacketCapture"
+
+Make sure your pom.xml contains:
+<dependency>
+    <groupId>org.pcap4j</groupId>
+    <artifactId>pcap4j-core</artifactId>
+    <version>1.8.2</version>
+</dependency>
+*/
+
+import org.pcap4j.core.*;
+import org.pcap4j.packet.*;
 
 public class PacketCapture {
-    public static void main(String[] args) {
-        System.out.println("Note: Native raw sockets (SOCK_RAW) are not supported directly in standard Java.");
-        System.out.println("Typically, packet capturing in Java relies on third-party libraries like pcap4j (which wraps libpcap).");
-        System.out.println("Alternatively, we can invoke system tools like 'tcpdump' directly from Java.\n");
-        
-        System.out.println("Executing: tcpdump -c 5 (Capturing 5 packets...)");
-        System.out.println("Note: this might require sudo privileges to work correctly.\n");
-        
-        try {
-            Process process = Runtime.getRuntime().exec(new String[]{"tcpdump", "-c", "5"});
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+    public static void main(String[] args) throws Exception {
+        PcapNetworkInterface nif = Pcaps.findAllDevs().get(0);
+        System.out.println("Network Interface: " + nif.getName());
+        int snapLen = 65536;
+        int timeout = 10;
+        PcapHandle handle = nif.openLive(snapLen, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, timeout);
+        System.out.println("Packet Capturing Started...");
+        while (true) {
+            Packet packet = handle.getNextPacket();
+            if (packet != null) {
+                System.out.println("--------------------------------------------");
+                if (packet.contains(EthernetPacket.class)) {
+                    EthernetPacket ethernet = packet.get(EthernetPacket.class);
+                    System.out.println("Source MAC Address: " + ethernet.getHeader().getSrcAddr());
+                    System.out.println("Destination MAC Address: " + ethernet.getHeader().getDstAddr());
+                }
+                if (packet.contains(IpV4Packet.class)) {
+                    IpV4Packet ip = packet.get(IpV4Packet.class);
+                    System.out.println("Source IP Address: " + ip.getHeader().getSrcAddr());
+                    System.out.println("Destination IP Address: " + ip.getHeader().getDstAddr());
+                }
+                if (packet.contains(TcpPacket.class)) {
+                    System.out.println("TCP Packet");
+                    TcpPacket tcp = packet.get(TcpPacket.class);
+                    System.out.println("Source TCP Port: " + tcp.getHeader().getSrcPort().valueAsInt());
+                    System.out.println("Destination TCP Port: " + tcp.getHeader().getDstPort().valueAsInt());
+                }
+                if (packet.contains(UdpPacket.class)) {
+                    System.out.println("UDP Packet");
+                    UdpPacket udp = packet.get(UdpPacket.class);
+                    System.out.println("Source UDP Port: " + udp.getHeader().getSrcPort().valueAsInt());
+                    System.out.println("Destination UDP Port: " + udp.getHeader().getDstPort().valueAsInt());
+                }
+                if (packet.contains(IcmpV4CommonPacket.class)) {
+                    System.out.println("ICMP Packet");
+                }
             }
-            
-            while ((line = errorReader.readLine()) != null) {
-                System.out.println("ERR: " + line);
-            }
-            
-            process.waitFor();
-            System.out.println("\nPacket capture complete.");
-        } catch (Exception e) {
-            System.out.println("Failed to capture packets. Make sure you have tcpdump installed and have sufficient permissions.");
-            e.printStackTrace();
         }
     }
 }

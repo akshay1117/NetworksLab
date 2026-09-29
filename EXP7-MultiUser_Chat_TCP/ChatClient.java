@@ -1,37 +1,28 @@
 import java.io.*;
+import java.util.*;
 import java.net.*;
-import java.util.Scanner;
 
 public class ChatClient {
     public static void main(String[] args) throws Exception {
-        Socket socket = new Socket("localhost", 12345);
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        Scanner scanner = new Scanner(System.in);
-
+        Socket socket = new Socket("localhost", 5000);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+        Scanner sc = new Scanner(System.in);
         System.out.print("Enter your name: ");
-        String name = scanner.nextLine();
-
-        // Thread to read messages
-        new Thread(() -> {
+        String name = sc.nextLine();
+        Thread receive = new Thread(() -> {
             try {
-                String msg;
-                while ((msg = in.readLine()) != null) {
-                    System.out.println(msg);
+                while (true) {
+                    System.out.println(dis.readUTF());
                 }
-            } catch (IOException e) {
-                System.out.println("Disconnected.");
-            }
-        }).start();
+            } catch (Exception e) {
 
-        System.out.println("You can start chatting now!");
-        
-        // Main thread to send messages
-        while (scanner.hasNextLine()) {
-            String msg = scanner.nextLine();
-            out.println(name + ": " + msg);
+            }
+        });
+        receive.start();
+        while (true) {
+            String msg = sc.nextLine();
+            dos.writeUTF(name + ":" + msg);
         }
-        scanner.close();
-        socket.close();
     }
 }

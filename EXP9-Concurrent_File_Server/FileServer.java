@@ -2,48 +2,92 @@ import java.io.*;
 import java.net.*;
 
 public class FileServer {
-    public static void main(String[] args) throws IOException {
-        try (ServerSocket serverSocket = new ServerSocket(4444)) {
-            System.out.println("File Server running on port 4444. Server PID: " + ProcessHandle.current().pid());
 
-            while (true) {
-                Socket socket = serverSocket.accept();
-                new FileHandler(socket).start();
-            }
+    public static void main(String[] args) throws Exception {
+
+        ServerSocket ss = new ServerSocket(5001);
+
+        long pid = ProcessHandle.current().pid();
+
+        System.out.println("Server started...");
+        System.out.println("Server PID: " + pid);
+
+        while (true) {
+
+            Socket s = ss.accept();
+
+            DataInputStream dis =
+                    new DataInputStream(s.getInputStream());
+
+            DataOutputStream dos =
+                    new DataOutputStream(s.getOutputStream());
+
+            ClientHandler ch =
+                    new ClientHandler(s, dis, dos, pid);
+
+            Thread t = new Thread(ch);
+            t.start();
         }
     }
-}
 
-class FileHandler extends Thread {
-    private Socket socket;
-    public FileHandler(Socket socket) { this.socket = socket; }
+    static class ClientHandler implements Runnable {
 
-    public void run() {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-             
-            String fileName = in.readLine();
-            System.out.println("Client requested file: " + fileName);
-            
-            long pid = ProcessHandle.current().pid();
-            File file = new File(fileName);
-            
-            out.println("Server PID: " + pid);
-            
-            if (file.exists() && !file.isDirectory()) {
-                out.println("SUCCESS");
-                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        Socket s;
+        DataInputStream dis;
+        DataOutputStream dos;
+        long pid;
+
+        ClientHandler(Socket s, DataInputStream dis,
+                      DataOutputStream dos, long pid) {
+
+            this.s = s;
+            this.dis = dis;
+            this.dos = dos;
+            this.pid = pid;
+        }
+
+        public void run() {
+
+            try {
+
+                String fileName = dis.readUTF();
+
+                dos.writeUTF("Server PID: " + pid);
+
+                File file = new File(fileName);
+
+                if (file.exists() && file.isFile()) {
+
+                    dos.writeUTF("File found: " + fileName);
+                    dos.writeUTF("----- File Contents -----");
+
+                    BufferedReader br =
+                            new BufferedReader(new FileReader(file));
+
                     String line;
+
                     while ((line = br.readLine()) != null) {
-                        out.println(line);
+                        dos.writeUTF(line);
                     }
+
+                    br.close();
+
+                    dos.writeUTF("----- End of File -----");
+
+                } else {
+
+                    dos.writeUTF("File not found: " + fileName);
                 }
-            } else {
-                out.println("ERROR");
-                out.println("File not found or is a directory: " + fileName);
+
+                dos.writeUTF("END");
+
+                dos.flush();
+                s.close();
+
+            } catch (Exception e) {
+
+                System.out.println("Client error: " + e);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

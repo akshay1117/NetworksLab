@@ -1,33 +1,40 @@
 import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.*;
 
 public class FileClient {
-    public static void main(String[] args) throws IOException {
-        try (Socket socket = new Socket("localhost", 4444);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             Scanner scanner = new Scanner(System.in)) {
-             
-            System.out.print("Enter file name/path to request from server: ");
-            String fileName = scanner.nextLine();
-            out.println(fileName);
-            
-            String pidInfo = in.readLine();
-            System.out.println(pidInfo); // Display server PID
-            
-            String status = in.readLine();
-            if ("SUCCESS".equals(status)) {
-                System.out.println("\n--- File Contents ---");
-                String line;
-                while ((line = in.readLine()) != null) {
-                    System.out.println(line);
-                }
-                System.out.println("---------------------");
-            } else {
-                System.out.println("\nServer replied with error:");
-                System.out.println(in.readLine()); // Print error msg
-            }
+
+    public static void main(String[] args) throws Exception {
+
+        Socket s = new Socket("localhost", 5001);
+
+        DataInputStream dis =
+                new DataInputStream(s.getInputStream());
+
+        DataOutputStream dos =
+                new DataOutputStream(s.getOutputStream());
+
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter file name: ");
+        String fileName = sc.nextLine();
+
+        // Send file name to server
+        dos.writeUTF(fileName);
+
+        String response;
+
+        while (true) {
+
+            response = dis.readUTF();
+
+            if (response.equals("END"))
+                break;
+
+            System.out.println(response);
         }
+
+        s.close();
+        sc.close();
     }
 }

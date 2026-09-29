@@ -1,53 +1,53 @@
 import java.io.*;
-import java.net.*;
 import java.util.*;
+import java.net.*;
 
 public class ChatServer {
-    private static Set<PrintWriter> clientWriters = new HashSet<>();
+    static Vector<ClientHandler> clients = new Vector<>();
 
     public static void main(String[] args) throws Exception {
-        System.out.println("Chat Server is running on port 12345...");
-        try (ServerSocket serverSocket = new ServerSocket(12345)) {
-            while (true) {
-                new Handler(serverSocket.accept()).start();
-            }
+        ServerSocket ss = new ServerSocket(5000);
+        System.out.println("Server Started...");
+        while (true) {
+            Socket s = ss.accept();
+            System.out.println("New Client Connected...");
+            DataInputStream dis = new DataInputStream(s.getInputStream());
+            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+            ClientHandler ch = new ClientHandler(s, dis, dos);
+            clients.add(ch);
+            Thread t = new Thread(ch);
+            t.start();
         }
     }
 
-    private static class Handler extends Thread {
-        private Socket socket;
-        private PrintWriter out;
-        private BufferedReader in;
+    static class ClientHandler implements Runnable {
+        Socket s;
+        DataInputStream dis;
+        DataOutputStream dos;
 
-        public Handler(Socket socket) { this.socket = socket; }
+        ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+            this.s = s;
+            this.dis = dis;
+            this.dos = dos;
+        }
 
         public void run() {
             try {
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                out = new PrintWriter(socket.getOutputStream(), true);
-                
-                synchronized (clientWriters) {
-                    clientWriters.add(out);
-                }
-
-                String message;
-                while ((message = in.readLine()) != null) {
-                    System.out.println("Received: " + message);
-                    synchronized (clientWriters) {
-                        for (PrintWriter writer : clientWriters) {
-                            writer.println(message);
+                while (true) {
+                    String msg = dis.readUTF();
+                    for (ClientHandler client : ChatServer.clients) {
+                        if (client != this) {
+                            client.dos.writeUTF(msg);
                         }
                     }
                 }
-            } catch (IOException e) {
-                System.out.println("Error: " + e.getMessage());
-            } finally {
-                if (out != null) {
-                    synchronized (clientWriters) {
-                        clientWriters.remove(out);
-                    }
+            } catch (Exception ex) {
+                try {
+                    ChatServer.clients.remove(this);
+                    s.close();
+                } catch (Exception e) {
+
                 }
-                try { socket.close(); } catch (IOException e) {}
             }
         }
     }

@@ -1,37 +1,18 @@
-import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.*;
 
 public class UDPClient {
-    public static void main(String[] args) {
-        String hostname = "localhost";
-        int port = 9876;
+    public static void main(String[] args) throws Exception {
+        DatagramSocket ss = new DatagramSocket();
 
-        try (DatagramSocket socket = new DatagramSocket();
-             Scanner scanner = new Scanner(System.in)) {
-
-            InetAddress address = InetAddress.getByName(hostname);
-
-            System.out.println("Enter a sentence (using abbreviations): ");
-            String sentence = scanner.nextLine();
-
-            // Send the sentence to the server
-            byte[] sendData = sentence.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, port);
-            socket.send(sendPacket);
-
-            // Receive the translated sentence from the server
-            byte[] receiveData = new byte[1024];
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            socket.receive(receivePacket);
-
-            String translatedSentence = new String(receivePacket.getData(), 0, receivePacket.getLength());
-            System.out.println("\nTranslated string sent back to the client:");
-            System.out.println(translatedSentence);
-
-        } catch (IOException ex) {
-            System.out.println("Client error: " + ex.getMessage());
-            ex.printStackTrace();
-        }
+        Scanner sc = new Scanner(System.in);
+        String msg = sc.nextLine();
+        ss.send(new DatagramPacket(msg.getBytes(), msg.length(), InetAddress.getByName("localhost"), 5000));
+        byte[] b = new byte[1024];
+        DatagramPacket p = new DatagramPacket(b, b.length);
+        ss.receive(p);
+        System.out.println(new String(p.getData(), 0, p.getLength()));
+        ss.close();
+        sc.close();
     }
 }
