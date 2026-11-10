@@ -4,12 +4,9 @@ public class UDPServer {
     public static void main(String[] args) throws Exception {
         DatagramSocket ss = new DatagramSocket(5000);
         System.out.println("Server Started...");
-        byte[] receivedata = new byte[1024];
-        byte[] sendData;
-
-        DatagramPacket receivepacket = new DatagramPacket(receivedata, receivedata.length);
-        ss.receive(receivepacket);
-        String sentence = new String(receivepacket.getData(), 0, receivepacket.getLength());
+        DatagramPacket rp = new DatagramPacket(new byte[1024], 1024);
+        ss.receive(rp);
+        String sentence = new String(rp.getData(), 0, rp.getLength());
 
         sentence = sentence.replaceAll("\\btbh\\b", "to be honest");
         sentence = sentence.replaceAll("\\big\\b", "i guess");
@@ -22,11 +19,7 @@ public class UDPServer {
         sentence = sentence.replaceAll("\\bidk\\b", "i don't know");
         sentence = sentence.replaceAll("\\bnvm\\b", "never mind");
 
-        sendData = sentence.getBytes();
-        InetAddress address = receivepacket.getAddress();
-        int port = receivepacket.getPort();
-        DatagramPacket sendpacket = new DatagramPacket(sendData, sendData.length, address, port);
-        ss.send(sendpacket);
+        ss.send(new DatagramPacket(sentence.getBytes(), sentence.length(), rp.getAddress(), rp.getPort()));
         ss.close();
     }
 }

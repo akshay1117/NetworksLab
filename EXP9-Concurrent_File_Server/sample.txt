@@ -1,0 +1,4 @@
+Hello from the file server!
+This is a sample file for the concurrent file transfer experiment.
+
+Network Lab - Experiment 9

@@ -1,6 +1,6 @@
 import java.io.*;
-import java.util.*;
 import java.net.*;
+import java.util.*;
 
 public class ChatServer {
     static Vector<ClientHandler> clients = new Vector<>();
@@ -8,45 +8,42 @@ public class ChatServer {
     public static void main(String[] args) throws Exception {
         ServerSocket ss = new ServerSocket(5000);
         System.out.println("Server Started...");
+
         while (true) {
             Socket s = ss.accept();
             System.out.println("New Client Connected...");
-            DataInputStream dis = new DataInputStream(s.getInputStream());
-            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-            ClientHandler ch = new ClientHandler(s, dis, dos);
-            clients.add(ch);
-            Thread t = new Thread(ch);
-            t.start();
+            ClientHandler client = new ClientHandler(s);
+            clients.add(client);
+            client.start();
         }
     }
 
-    static class ClientHandler implements Runnable {
+    static class ClientHandler extends Thread {
         Socket s;
         DataInputStream dis;
         DataOutputStream dos;
 
-        ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+        ClientHandler(Socket s) throws IOException {
             this.s = s;
-            this.dis = dis;
-            this.dos = dos;
+            this.dis = new DataInputStream(s.getInputStream());
+            this.dos = new DataOutputStream(s.getOutputStream());
         }
 
         public void run() {
             try {
                 while (true) {
                     String msg = dis.readUTF();
-                    for (ClientHandler client : ChatServer.clients) {
-                        if (client != this) {
-                            client.dos.writeUTF(msg);
+                    for (ClientHandler c : clients) {
+                        if (c != this) {
+                            c.dos.writeUTF(msg);
                         }
                     }
                 }
-            } catch (Exception ex) {
+            } catch (Exception e) {
                 try {
-                    ChatServer.clients.remove(this);
+                    clients.remove(this);
                     s.close();
-                } catch (Exception e) {
-
+                } catch (Exception ignored) {
                 }
             }
         }
